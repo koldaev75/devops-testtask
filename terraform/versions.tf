@@ -1,5 +1,13 @@
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.10.0"
+
+  backend "s3" {
+    bucket       = "devops-test-tfstate-056300054271"
+    key          = "eks/terraform.tfstate"
+    region       = "eu-central-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 
   required_providers {
     aws = {
@@ -17,6 +25,10 @@ terraform {
     tls = {
       source  = "hashicorp/tls"
       version = "~> 4.0"
+    }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.4"
     }
   }
 }
