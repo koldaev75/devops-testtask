@@ -8,7 +8,7 @@
 # IAM policy JSON published by the project — fetched at apply time so we always
 # get the version that matches the controller image.
 data "http" "alb_controller_policy" {
-  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.8.2/docs/install/iam_policy.json"
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v3.5.0/docs/install/iam_policy.json"
 }
 
 resource "aws_iam_policy" "alb_controller" {
@@ -31,7 +31,7 @@ module "alb_controller_irsa" {
     main = {
       provider_arn = module.eks.oidc_provider_arn
       # The service account the Helm chart creates lives in kube-system.
-      namespace_service_accounts = ["kube-system:alb-controller"]
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
     }
   }
 }
@@ -41,7 +41,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version    = "1.8.2"
+  version    = "3.5.0"
 
   set {
     name  = "clusterName"

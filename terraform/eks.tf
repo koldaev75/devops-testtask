@@ -5,44 +5,36 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
 
+  # Known debt (see SOLUTION.md): public endpoint is open to 0.0.0.0/0.
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = true
 
   enable_irsa = true
 
   vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.public_subnets
+  subnet_ids = module.vpc.private_subnets
 
-  # Fargate-only cluster. We declare profiles for kube-system (CoreDNS / metrics)
-  # and for our workloads.
+  # Fargate-only cluster: every pod needs a matching profile, otherwise it stays Pending.
   fargate_profiles = {
-    # CoreDNS must run on Fargate too — there are no EC2 nodes in this cluster.
+    # CoreDNS and the AWS Load Balancer Controller both live in kube-system.
     kube_system = {
       name = "kube-system"
       selectors = [
-        {
-          namespace = "kube-system"
-          labels = {
-            "k8s-app" = "kube-dns"
-          }
-        }
+        { namespace = "kube-system" }
       ]
-      subnet_ids = aws_subnet.public_data[*].id
+      subnet_ids = module.vpc.private_subnets
     }
 
-    # Workload Fargate profile.
+    # Workload namespace must match k8s/namespace.yaml.
     apps = {
       name = "apps"
       selectors = [
-        {
-          namespace = "default"
-        }
+        { namespace = var.app_namespace }
       ]
-      subnet_ids = aws_subnet.public_data[*].id
+      subnet_ids = module.vpc.private_subnets
     }
   }
 
-  # Cluster add-ons. CoreDNS is patched to run on Fargate via the compute config.
   cluster_addons = {
     coredns = {
       most_recent = true
@@ -62,9 +54,8 @@ module "eks" {
     }
   }
 
-  # Give the operator running `terraform apply` cluster-admin so kubeconfig works
-  # immediately. In real production you would use access entries with least
-  # privilege and SSO.
+  # Cluster-admin for the identity running terraform apply (the assumed role).
+  # Production: dedicated access entries with least privilege and SSO.
   enable_cluster_creator_admin_permissions = true
 
   tags = {
