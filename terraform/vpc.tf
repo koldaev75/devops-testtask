@@ -30,6 +30,7 @@ module "vpc" {
   # Public subnets host the internet-facing ALB; private subnets host Fargate pods.
   public_subnet_tags = {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/role/elb"                    = "1"
   }
 
   private_subnet_tags = {
